@@ -1,13 +1,16 @@
 import BookList from "@/components/BookList";
 import BookOverview from "@/components/BookOverview";
-import { Button } from "@/components/ui/button";
-import { Book } from "lucide-react";
+import { sampleBooks } from "@/constants";
 
 const Home = () => {
   return (
     <>
-      <BookOverview />
-      <BookList />
+      <BookOverview {...sampleBooks[0]} />
+      <BookList
+        title="Latest Books"
+        books={sampleBooks.slice(1)}
+        containerClassName="mt-28"
+      />
     </>
   );
 };
