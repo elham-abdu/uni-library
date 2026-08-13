@@ -1,15 +1,18 @@
-interface Book {
-  id: string;
+export interface Book {
+  id: string | number;
   title: string;
-  author: string;
+  author?: string;
   genre: string;
-  rating: number;
-  totalCopies: number;
-  availableCopies: number;
-  coverColor: string;
+  rating?: number;
+  totalCopies?: number;
+  availableCopies?: number;
   description?: string;
-  cover: string;
-  videoUrl: string;
-  summary: string;
-  createdAt: Date | null;
+  coverColor: string;
+  color?: string;
+  cover?: string;
+  coverUrl?: string;
+  videoUrl?: string;
+  summary?: string;
+  createdAt?: Date | null;
+  isLoanedBook?: boolean;
 }

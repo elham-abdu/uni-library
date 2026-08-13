@@ -28,9 +28,11 @@ const BookOverview = ({
 }: Book) => {
   return (
     <section className="book-overview">
-      {/* Text Info Container */}
+      {/* 1. Left Section: Details & Borrow Button */}
       <div className="flex flex-1 flex-col gap-5">
-        <h1>{title}</h1>
+        <h1 className="text-5xl font-semibold text-white lg:text-7xl">
+          {title}
+        </h1>
 
         <div className="book-info">
           <p>
@@ -42,7 +44,7 @@ const BookOverview = ({
             <span className="font-semibold text-light-200">{genre}</span>
           </p>
 
-          <div className="flex flex-row gap-1">
+          <div className="flex flex-row items-center gap-1">
             <Image src="/icons/star.svg" alt="star" width={22} height={22} />
             <p>{rating}</p>
           </div>
@@ -59,9 +61,17 @@ const BookOverview = ({
         </div>
 
         <p className="book-description">{description}</p>
+
+        {/* 🌟 Borrow Button with Rounded Edges 🌟 */}
+        <button className="book-overview_btn flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 transition-all hover:bg-primary/90 min-h-14 w-fit max-md:w-full">
+          <Image src="/icons/book.svg" alt="book" width={20} height={20} />
+          <p className="font-bebas-neue text-xl text-dark-100 uppercase">
+            Borrow Book
+          </p>
+        </button>
       </div>
 
-      {/* Book Cover Graphic Container */}
+      {/* 2. Right Section: Book Cover Graphics */}
       <div className="relative flex flex-1 justify-center">
         <div className="relative">
           <BookCover

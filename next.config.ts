@@ -5,11 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "placehold.co",
+        hostname: "m.media-amazon.com", // 👈 Or use "**" to allow all domains while testing
       },
       {
         protocol: "https",
-        hostname: "m.media-amazon.com",
+        hostname: "ik.imagekit.io",
       },
     ],
   },
