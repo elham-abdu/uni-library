@@ -16,3 +16,10 @@ export interface Book {
   createdAt?: Date | null;
   isLoanedBook?: boolean;
 }
+interface AuthCredentials {
+  fullname: string;
+  email: string;
+  universityId: number;
+  password: string;
+  universityCard: string;
+}
