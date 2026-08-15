@@ -1,16 +1,16 @@
 "use client";
 
-import React from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  ControllerRenderProps,
   DefaultValues,
   FieldValues,
   Path,
   SubmitHandler,
   useForm,
+  UseFormReturn,
 } from "react-hook-form";
-import { ZodType } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { ZodSchema } from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -20,14 +20,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FIELD_NAMES, FIELD_TYPES } from "@/constants";
+import FileUpload from "@/components/FileUpload";
 
 interface Props<T extends FieldValues> {
   type: "SIGN_IN" | "SIGN_UP";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  schema: ZodType<T, any, any>;
+  schema: ZodSchema<T>;
   defaultValues: T;
   onSubmit: (data: T) => Promise<{ success: boolean; error?: string }>;
 }
@@ -40,30 +39,27 @@ const AuthForm = <T extends FieldValues>({
 }: Props<T>) => {
   const isSignIn = type === "SIGN_IN";
 
-  const form = useForm<T>({
+  const form: UseFormReturn<T> = useForm<T>({
+    // Using `schema as any` here breaks the generic lock between RHF and Zod
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema as any),
     defaultValues: defaultValues as DefaultValues<T>,
   });
 
-  const handleSubmit: SubmitHandler<T> = async (data: T) => {
-    const result = await onSubmit(data);
-
-    if (result.success) {
-      // Handle success
-    } else {
-      // Handle error
-    }
+  const handleSubmit: SubmitHandler<T> = async (data) => {
+    await onSubmit(data);
   };
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold text-white">
-        {isSignIn ? "Welcome back to BookWise" : "Create Your Library Account"}
+        {isSignIn
+          ? "Welcome back to Bookwise"
+          : "Create your library account"}
       </h1>
       <p className="text-light-100">
         {isSignIn
-          ? "Access the vast collection of resources, and stay informed"
+          ? "Access the vast collection of resources, and stay readied"
           : "Please complete all fields and upload a valid university ID to gain access to the library"}
       </p>
 
@@ -77,22 +73,27 @@ const AuthForm = <T extends FieldValues>({
               key={field}
               control={form.control}
               name={field as Path<T>}
-              render={({
-                field: formField,
-              }: {
-                field: ControllerRenderProps<T, Path<T>>;
-              }) => (
+              render={({ field: formField }) => (
                 <FormItem>
-                  <FormLabel className="capitalize text-light-100">
+                  <FormLabel className="capitalize">
                     {FIELD_NAMES[field as keyof typeof FIELD_NAMES]}
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      required
-                      type={FIELD_TYPES[field as keyof typeof FIELD_TYPES]}
-                      {...formField}
-                      className="form-input"
-                    />
+                    {field === "universityCard" ? (
+                      <FileUpload
+                        onFileChange={formField.onChange}
+                        value={formField.value}
+                      />
+                    ) : (
+                      <Input
+                        required
+                        type={
+                          FIELD_TYPES[field as keyof typeof FIELD_TYPES]
+                        }
+                        {...formField}
+                        className="form-input"
+                      />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -106,13 +107,13 @@ const AuthForm = <T extends FieldValues>({
         </form>
       </Form>
 
-      <p className="text-center text-base font-medium text-light-100 mt-4">
-        {isSignIn ? "New to BookWise? " : "Have an account already? "}
+      <p className="text-center text-base font-medium text-light-100">
+        {isSignIn ? "New to Bookwise? " : "Already have an account? "}
         <Link
           href={isSignIn ? "/sign-up" : "/sign-in"}
-          className="font-bold text-primary hover:underline"
+          className="font-bold text-primary"
         >
-          {isSignIn ? "Create an account" : "Login"}
+          {isSignIn ? "Create an account" : "Sign in"}
         </Link>
       </p>
     </div>
