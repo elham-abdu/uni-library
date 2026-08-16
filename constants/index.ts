@@ -3,7 +3,6 @@ export const navigationLinks = [
     href: "/library",
     label: "Library",
   },
-
   {
     img: "/icons/user.svg",
     selectedImg: "/icons/user-fill.svg",
@@ -40,6 +39,7 @@ export const adminSideBarLinks = [
   },
 ];
 
+// 🌟 ADDED MISSING EXPORTS BELOW 🌟
 export const FIELD_NAMES = {
   fullname: "Full name",
   email: "Email",
@@ -57,7 +57,7 @@ export const FIELD_TYPES = {
 
 export const sampleBooks = [
   {
-    id: 1,
+    id: "c0a80101-0000-0000-0000-000000000001",
     title: "The Midnight Library",
     author: "Matt Haig",
     genre: "Fantasy / Fiction",
@@ -70,11 +70,11 @@ export const sampleBooks = [
     coverUrl: "https://m.media-amazon.com/images/I/81J6APjwxlL.jpg",
     videoUrl: "/sample-video.mp4?updatedAt=1722593504152",
     summary:
-      "A dazzling novel about all the choices that go into a life well lived, The Midnight Library tells the story of Nora Seed as she finds herself between life and death. A dazzling novel about all the choices that go into a life well lived, The Midnight Library tells the story of Nora Seed as she finds herself between life and death.",
+      "A dazzling novel about all the choices that go into a life well lived, The Midnight Library tells the story of Nora Seed as she finds herself between life and death.",
     isLoanedBook: true,
   },
   {
-    id: 2,
+    id: "c0a80101-0000-0000-0000-000000000002",
     title: "Atomic Habits",
     author: "James Clear",
     genre: "Self-Help / Productivity",
@@ -90,7 +90,7 @@ export const sampleBooks = [
       "A revolutionary guide to making good habits, breaking bad ones, and getting 1% better every day.",
   },
   {
-    id: 3,
+    id: "c0a80101-0000-0000-0000-000000000003",
     title: "You Don't Know JS: Scope & Closures",
     author: "Kyle Simpson",
     genre: "Computer Science / JavaScript",
@@ -107,7 +107,7 @@ export const sampleBooks = [
       "An essential guide to understanding the core mechanisms of JavaScript, focusing on scope and closures.",
   },
   {
-    id: 4,
+    id: "c0a80101-0000-0000-0000-000000000004",
     title: "The Alchemist",
     author: "Paulo Coelho",
     genre: "Philosophy / Adventure",
@@ -124,7 +124,7 @@ export const sampleBooks = [
       "A magical tale of Santiago, an Andalusian shepherd boy, who embarks on a journey to find a worldly treasure.",
   },
   {
-    id: 5,
+    id: "c0a80101-0000-0000-0000-000000000005",
     title: "Deep Work",
     author: "Cal Newport",
     genre: "Self-Help / Productivity",
@@ -140,7 +140,7 @@ export const sampleBooks = [
       "Rules for focused success in a distracted world, teaching how to cultivate deep focus to achieve peak productivity.",
   },
   {
-    id: 6,
+    id: "c0a80101-0000-0000-0000-000000000006",
     title: "Clean Code",
     author: "Robert C. Martin",
     genre: "Computer Science / Programming",
@@ -157,7 +157,7 @@ export const sampleBooks = [
       "A handbook of agile software craftsmanship, offering best practices and principles for writing clean and maintainable code.",
   },
   {
-    id: 7,
+    id: "c0a80101-0000-0000-0000-000000000007",
     title: "The Pragmatic Programmer",
     author: "Andrew Hunt, David Thomas",
     genre: "Computer Science / Programming",
@@ -174,7 +174,7 @@ export const sampleBooks = [
       "A timeless guide for developers to hone their skills and improve their programming practices.",
   },
   {
-    id: 8,
+    id: "c0a80101-0000-0000-0000-000000000008",
     title: "The Psychology of Money",
     author: "Morgan Housel",
     genre: "Finance / Self-Help",

@@ -1,21 +1,15 @@
-import React from 'react';
-import Image from 'next/image';
-import BookCover from '@/components/BookCover';
+import React from "react";
+import Image from "next/image";
+import BookCover from "@/components/BookCover";
+import { BorrowBook } from "@/components/BorrowBook";
+import { Book } from "@/database/schema";
 
-interface Book {
-  id?: number;
-  title: string;
-  author: string;
-  genre: string;
-  rating: number;
-  totalCopies: number;
-  availableCopies: number;
-  description: string;
-  coverColor: string;
-  coverUrl: string;
+interface Props extends Book {
+  userId: string;
 }
 
 const BookOverview = ({
+  id,
   title,
   author,
   genre,
@@ -25,7 +19,13 @@ const BookOverview = ({
   description,
   coverColor,
   coverUrl,
-}: Book) => {
+  userId,
+}: Props) => {
+  const borrowEligibility = {
+    isEligible: availableCopies > 0,
+    message: availableCopies <= 0 ? "Book is currently out of stock" : "",
+  };
+
   return (
     <section className="book-overview">
       {/* 1. Left Section: Details & Borrow Button */}
@@ -62,13 +62,12 @@ const BookOverview = ({
 
         <p className="book-description">{description}</p>
 
-        {/* 🌟 Borrow Button with Rounded Edges 🌟 */}
-        <button className="book-overview_btn flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 transition-all hover:bg-primary/90 min-h-14 w-fit max-md:w-full">
-          <Image src="/icons/book.svg" alt="book" width={20} height={20} />
-          <p className="font-bebas-neue text-xl text-dark-100 uppercase">
-            Borrow Book
-          </p>
-        </button>
+        {/* 🌟 Interactive Borrow Button 🌟 */}
+        <BorrowBook
+          bookId={id}
+          userId={userId}
+          borrowEligibility={borrowEligibility}
+        />
       </div>
 
       {/* 2. Right Section: Book Cover Graphics */}

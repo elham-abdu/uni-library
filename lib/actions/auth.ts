@@ -6,6 +6,9 @@ import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { signInSchema, signUpSchema } from "@/lib/validations";
 import { signIn } from "@/auth";
+import { workflowClient } from "@/lib/workflow";
+import config from "@/lib/config";
+import type { AuthCredentials } from "@/types";
 
 export const signUp = async (params: AuthCredentials) => {
   const { fullname, email, universityId, password, universityCard } = params;
@@ -47,7 +50,16 @@ export const signUp = async (params: AuthCredentials) => {
       universityCard,
     });
 
-    // 5. Automatically sign in the user after creation
+    // 5. Trigger automated onboarding workflow via QStash
+    await workflowClient.trigger({
+      url: `${config.env.prodApiEndpoint}/api/workflows/onboarding`,
+      body: {
+        email,
+        fullName: fullname,
+      },
+    });
+
+    // 6. Automatically sign in the user after creation
     await signInWithCredentials({ email, password });
 
     return { success: true };
