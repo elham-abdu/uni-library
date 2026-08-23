@@ -7,6 +7,7 @@ import {
   pgEnum,
   timestamp,
   date,
+  numeric, // ✅ Add this import!
 } from "drizzle-orm/pg-core";
 
 export const STATUS_ENUM = pgEnum("status", ["PENDING", "APPROVED", "REJECTED"]);
@@ -34,7 +35,7 @@ export const books = pgTable("books", {
   title: varchar("title", { length: 255 }).notNull(),
   author: varchar("author", { length: 255 }).notNull(),
   genre: text("genre").notNull(),
-  rating: integer("rating").notNull(),
+  rating: numeric("rating").notNull(), // Now numeric is imported
   coverUrl: text("cover_url").notNull(),
   coverColor: varchar("cover_color", { length: 7 }).notNull(),
   description: text("description").notNull(),
@@ -45,8 +46,6 @@ export const books = pgTable("books", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export type Book = typeof books.$inferSelect;
-export type NewBook = typeof books.$inferInsert;
 export const borrowRecords = pgTable("borrow_records", {
   id: uuid("id").notNull().primaryKey().defaultRandom(),
   userId: uuid("user_id")
@@ -64,4 +63,7 @@ export const borrowRecords = pgTable("borrow_records", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export type User = typeof users.$inferSelect;
+export type Book = typeof books.$inferSelect;
+export type NewBook = typeof books.$inferInsert;
 export type BorrowRecord = typeof borrowRecords.$inferSelect;

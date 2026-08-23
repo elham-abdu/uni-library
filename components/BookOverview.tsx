@@ -2,10 +2,20 @@ import React from "react";
 import Image from "next/image";
 import BookCover from "@/components/BookCover";
 import { BorrowBook } from "@/components/BorrowBook";
-import { Book } from "@/database/schema";
 
-interface Props extends Book {
+interface BookOverviewProps {
+  id: string | number;
+  title: string;
+  author?: string;
+  genre: string;
+  rating?: number | string;
+  totalCopies?: number;
+  availableCopies?: number;
+  description?: string;
+  coverColor: string;
+  coverUrl?: string;
   userId: string;
+  summary?: string;
 }
 
 const BookOverview = ({
@@ -14,13 +24,13 @@ const BookOverview = ({
   author,
   genre,
   rating,
-  totalCopies,
-  availableCopies,
+  totalCopies = 0,
+  availableCopies = 0,
   description,
   coverColor,
   coverUrl,
   userId,
-}: Props) => {
+}: BookOverviewProps) => {
   const borrowEligibility = {
     isEligible: availableCopies > 0,
     message: availableCopies <= 0 ? "Book is currently out of stock" : "",
@@ -28,7 +38,6 @@ const BookOverview = ({
 
   return (
     <section className="book-overview">
-      {/* 1. Left Section: Details & Borrow Button */}
       <div className="flex flex-1 flex-col gap-5">
         <h1 className="text-5xl font-semibold text-white lg:text-7xl">
           {title}
@@ -62,15 +71,13 @@ const BookOverview = ({
 
         <p className="book-description">{description}</p>
 
-        {/* 🌟 Interactive Borrow Button 🌟 */}
         <BorrowBook
-          bookId={id}
+          bookId={String(id)}
           userId={userId}
           borrowEligibility={borrowEligibility}
         />
       </div>
 
-      {/* 2. Right Section: Book Cover Graphics */}
       <div className="relative flex flex-1 justify-center">
         <div className="relative">
           <BookCover

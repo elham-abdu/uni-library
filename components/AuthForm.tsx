@@ -1,15 +1,17 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import React, { useState } from "react";
 import {
   DefaultValues,
   FieldValues,
   Path,
+  Resolver,
   SubmitHandler,
   useForm,
-  UseFormReturn,
 } from "react-hook-form";
-import { ZodSchema } from "zod";
+import { ZodTypeAny } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -19,14 +21,31 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { FIELD_NAMES, FIELD_TYPES } from "@/constants";
+import { useRouter } from "next/navigation";
 import FileUpload from "@/components/FileUpload";
+import { toast } from "sonner";
+
+// Define types for form data
+interface SignInFormData {
+  email: string;
+  password: string;
+}
+
+interface SignUpFormData {
+  fullname: string;
+  email: string;
+  universityId: number;
+  password: string;
+  universityCard: string;
+}
+
+type FormData = SignInFormData | SignUpFormData;
 
 interface Props<T extends FieldValues> {
   type: "SIGN_IN" | "SIGN_UP";
-  schema: ZodSchema<T>;
+  schema: ZodTypeAny;
   defaultValues: T;
   onSubmit: (data: T) => Promise<{ success: boolean; error?: string }>;
 }
@@ -37,30 +56,61 @@ const AuthForm = <T extends FieldValues>({
   defaultValues,
   onSubmit,
 }: Props<T>) => {
-  const isSignIn = type === "SIGN_IN";
+  const router = useRouter();
+  const isSignUp = type === "SIGN_UP";
+  const [rememberMe, setRememberMe] = useState(false);
 
-  const form: UseFormReturn<T> = useForm<T>({
-    // Using `schema as any` here breaks the generic lock between RHF and Zod
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(schema as any),
+  const form = useForm<T>({
+    resolver: zodResolver(schema as Parameters<typeof zodResolver>[0]) as Resolver<T>,
     defaultValues: defaultValues as DefaultValues<T>,
   });
 
   const handleSubmit: SubmitHandler<T> = async (data) => {
-    await onSubmit(data);
+    const result = await onSubmit(data);
+
+    if (result.success) {
+      // Save credentials if "Remember Me" is checked
+      if (!isSignUp && rememberMe) {
+        const formData = data as unknown as SignInFormData;
+        localStorage.setItem("rememberedEmail", formData.email);
+        localStorage.setItem("rememberedPassword", formData.password);
+      } else if (!isSignUp && !rememberMe) {
+        localStorage.removeItem("rememberedEmail");
+        localStorage.removeItem("rememberedPassword");
+      }
+
+      toast.success(
+        isSignUp ? "🎉 Account created successfully!" : "👋 Welcome back!",
+        {
+          description: isSignUp 
+            ? "You can now explore and borrow books from the library."
+            : "You're now signed in to Bookwise.",
+          duration: 4000,
+        }
+      );
+      router.push("/");
+      router.refresh();
+    } else {
+      toast.error(result.error || "Something went wrong. Please try again.", {
+        description: isSignUp 
+          ? "Please check your information and try again."
+          : "Check your email and password and try again.",
+      });
+    }
   };
+
+  // Get field names from defaultValues
+  const fieldNames = Object.keys(defaultValues) as Array<keyof T>;
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold text-white">
-        {isSignIn
-          ? "Welcome back to Bookwise"
-          : "Create your library account"}
+        {isSignUp ? "Create a library account" : "Welcome back to BookWise"}
       </h1>
       <p className="text-light-100">
-        {isSignIn
-          ? "Access the vast collection of resources, and stay readied"
-          : "Please complete all fields and upload a valid university ID to gain access to the library"}
+        {isSignUp
+          ? "Please complete all fields and upload a valid university ID to gain access to the library"
+          : "Access the vast collection of resources, and stay read"}
       </p>
 
       <Form {...form}>
@@ -68,15 +118,15 @@ const AuthForm = <T extends FieldValues>({
           onSubmit={form.handleSubmit(handleSubmit)}
           className="space-y-6 w-full"
         >
-          {Object.keys(defaultValues).map((field) => (
+          {fieldNames.map((field) => (
             <FormField
-              key={field}
+              key={field as string}
               control={form.control}
               name={field as Path<T>}
               render={({ field: formField }) => (
                 <FormItem>
                   <FormLabel className="capitalize">
-                    {FIELD_NAMES[field as keyof typeof FIELD_NAMES]}
+                    {FIELD_NAMES[field as keyof typeof FIELD_NAMES] || String(field)}
                   </FormLabel>
                   <FormControl>
                     {field === "universityCard" ? (
@@ -88,7 +138,8 @@ const AuthForm = <T extends FieldValues>({
                       <Input
                         required
                         type={
-                          FIELD_TYPES[field as keyof typeof FIELD_TYPES]
+                          FIELD_TYPES[field as keyof typeof FIELD_TYPES] ||
+                          "text"
                         }
                         {...formField}
                         className="form-input"
@@ -101,19 +152,35 @@ const AuthForm = <T extends FieldValues>({
             />
           ))}
 
+          {/* Remember Me checkbox - only for sign in */}
+          {!isSignUp && (
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 accent-primary cursor-pointer"
+              />
+              <label htmlFor="rememberMe" className="text-light-100 text-sm cursor-pointer">
+                Remember me
+              </label>
+            </div>
+          )}
+
           <Button type="submit" className="form-btn">
-            {isSignIn ? "Sign In" : "Sign Up"}
+            {isSignUp ? "Sign Up" : "Sign In"}
           </Button>
         </form>
       </Form>
 
-      <p className="text-center text-base font-medium text-light-100">
-        {isSignIn ? "New to Bookwise? " : "Already have an account? "}
+      <p className="text-center text-base font-medium">
+        {isSignUp ? "Already have an account? " : "New to BookWise? "}
         <Link
-          href={isSignIn ? "/sign-up" : "/sign-in"}
+          href={isSignUp ? "/sign-in" : "/sign-up"}
           className="font-bold text-primary"
         >
-          {isSignIn ? "Create an account" : "Sign in"}
+          {isSignUp ? "Sign In" : "Create an account"}
         </Link>
       </p>
     </div>

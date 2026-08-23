@@ -1,4 +1,3 @@
-// app/api/imagekit/route.ts
 import { NextResponse } from "next/server";
 import ImageKit from "imagekit";
 import config from "@/lib/config";

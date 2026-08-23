@@ -3,7 +3,7 @@ export interface Book {
   title: string;
   author?: string;
   genre: string;
-  rating?: number;
+  rating?: number | string;
   totalCopies?: number;
   availableCopies?: number;
   description?: string;
@@ -16,14 +16,21 @@ export interface Book {
   createdAt?: Date | null;
   isLoanedBook?: boolean;
 }
-interface AuthCredentials {
+
+export interface AuthCredentials {
   fullname: string;
   email: string;
   universityId: number;
   password: string;
   universityCard: string;
 }
-interface BookParams {
+
+export interface SignInCredentials {
+  email: string;
+  password: string;
+}
+
+export interface BookParams {
   title: string;
   author: string;
   genre: string;
@@ -34,4 +41,17 @@ interface BookParams {
   totalCopies: number;
   videoUrl: string;
   summary: string;
+}
+declare module 'lucide-react' {
+  export const Search: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Filter: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const X: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Loader2: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const BookOpen: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const User: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const LogOut: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Home: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Library: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Calendar: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  export const Star: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }

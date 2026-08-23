@@ -6,14 +6,14 @@ import { db } from "@/database/drizzle";
 import { users } from "@/database/schema";
 import { signInSchema, signUpSchema } from "@/lib/validations";
 import { signIn } from "@/auth";
-import { workflowClient } from "@/lib/workflow";
-import config from "@/lib/config";
-import type { AuthCredentials } from "@/types";
+import { AuthCredentials, SignInCredentials } from "@/types";
+import { sendWelcomeEmail } from "@/lib/email/service";
 
 export const signUp = async (params: AuthCredentials) => {
   const { fullname, email, universityId, password, universityCard } = params;
 
-  // 1. Validate form fields against Zod schema
+  console.log("📝 Sign up attempt for:", email);
+
   const validationResult = signUpSchema.safeParse({
     fullname,
     email,
@@ -23,10 +23,10 @@ export const signUp = async (params: AuthCredentials) => {
   });
 
   if (!validationResult.success) {
+    console.log("❌ Validation failed:", validationResult.error);
     return { success: false, error: "Invalid form input data." };
   }
 
-  // 2. Check if user with existing email already exists
   const existingUser = await db
     .select()
     .from(users)
@@ -34,47 +34,52 @@ export const signUp = async (params: AuthCredentials) => {
     .limit(1);
 
   if (existingUser.length > 0) {
+    console.log("❌ User already exists:", email);
     return { success: false, error: "User with this email already exists." };
   }
 
-  // 3. Hash user password securely
   const hashedPassword = await hash(password, 10);
 
   try {
-    // 4. Insert new user record into Neon PostgreSQL
+    console.log("📝 Creating user...");
     await db.insert(users).values({
       fullName: fullname,
       email,
       universityId: universityId.toString(),
       password: hashedPassword,
       universityCard,
+      status: "APPROVED",
+      role: "USER",
     });
+    console.log("✅ User created successfully");
 
-    // 5. Trigger automated onboarding workflow via QStash
-    await workflowClient.trigger({
-      url: `${config.env.prodApiEndpoint}/api/workflows/onboarding`,
-      body: {
-        email,
-        fullName: fullname,
-      },
+    // Send welcome email
+    console.log("📧 Attempting to send welcome email to:", email);
+    try {
+      const emailResult = await sendWelcomeEmail(email, fullname);
+      console.log("📧 Welcome email result:", emailResult);
+    } catch (emailError) {
+      console.error("❌ Failed to send welcome email:", emailError);
+    }
+
+    console.log("📝 Signing in user...");
+    await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
     });
-
-    // 6. Automatically sign in the user after creation
-    await signInWithCredentials({ email, password });
+    console.log("✅ User signed in successfully");
 
     return { success: true };
   } catch (error) {
-    console.error("SignUp Error:", error);
+    console.error("❌ SignUp Error:", error);
     return { success: false, error: "Failed to create account. Please try again." };
   }
 };
 
-export const signInWithCredentials = async (
-  params: Pick<AuthCredentials, "email" | "password">
-) => {
+export const signInWithCredentials = async (params: SignInCredentials) => {
   const { email, password } = params;
 
-  // 1. Validate credentials against Zod schema
   const validationResult = signInSchema.safeParse({ email, password });
 
   if (!validationResult.success) {
@@ -82,7 +87,6 @@ export const signInWithCredentials = async (
   }
 
   try {
-    // 2. Authenticate using NextAuth credentials provider
     const result = await signIn("credentials", {
       email,
       password,

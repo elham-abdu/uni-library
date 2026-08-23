@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ReactNode } from "react";
 import localFont from "next/font/local";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
+import { SessionProvider } from "next-auth/react";
 
 const ibmPlexSans = localFont({
   src: [
@@ -27,10 +28,20 @@ export const metadata: Metadata = {
 
 const RootLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <html lang="en">
-      <body className={`${ibmPlexSans.className} ${bebasNeue.variable} antialiased`}>
-        {children}
-        <Toaster />
+    <html lang="en" suppressHydrationWarning>
+      <body 
+        className={`${ibmPlexSans.className} ${bebasNeue.variable} antialiased`} 
+        suppressHydrationWarning
+      >
+        <SessionProvider>
+          {children}
+          <Toaster 
+            position="top-right" 
+            richColors 
+            expand={true}
+            closeButton
+          />
+        </SessionProvider>
       </body>
     </html>
   );
