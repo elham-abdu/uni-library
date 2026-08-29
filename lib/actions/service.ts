@@ -1,4 +1,4 @@
-﻿import { Resend } from "resend";
+import { Resend } from "resend";
 import config from "@/lib/config";
 
 // Log if token exists
@@ -9,6 +9,7 @@ const resend = process.env.RESEND_TOKEN ? new Resend(process.env.RESEND_TOKEN) :
 
 export const sendWelcomeEmail = async (email: string, name: string) => {
   console.log("📧 sendWelcomeEmail called for:", email);
+  console.log("📧 Resend instance:", resend ? "exists" : "null");
 
   if (!resend) {
     console.error("❌ Resend not configured - missing API key");
@@ -16,6 +17,7 @@ export const sendWelcomeEmail = async (email: string, name: string) => {
   }
 
   try {
+    console.log("📧 Sending welcome email...");
     const result = await resend.emails.send({
       from: "Bookwise <onboarding@resend.dev>",
       to: [email],
@@ -39,6 +41,8 @@ export const sendWelcomeEmail = async (email: string, name: string) => {
         </div>
       `,
     });
+
+    console.log("📧 Welcome email sent successfully:", result);
     return { success: true, data: result };
   } catch (error) {
     console.error("❌ Send welcome email error:", error);
@@ -86,6 +90,8 @@ export const sendBorrowConfirmation = async (
         </div>
       `,
     });
+
+    console.log("📧 Borrow confirmation sent:", result);
     return { success: true, data: result };
   } catch (error) {
     console.error("❌ Send borrow confirmation error:", error);
@@ -131,6 +137,8 @@ export const sendReturnConfirmation = async (
         </div>
       `,
     });
+
+    console.log("📧 Return confirmation sent:", result);
     return { success: true, data: result };
   } catch (error) {
     console.error("❌ Send return confirmation error:", error);
@@ -178,6 +186,8 @@ export const sendDueReminder = async (
         </div>
       `,
     });
+
+    console.log("📧 Due reminder sent:", result);
     return { success: true, data: result };
   } catch (error) {
     console.error("❌ Send due reminder error:", error);
@@ -224,6 +234,8 @@ export const sendOverdueEmail = async (
         </div>
       `,
     });
+
+    console.log("📧 Overdue email sent:", result);
     return { success: true, data: result };
   } catch (error) {
     console.error("❌ Send overdue email error:", error);

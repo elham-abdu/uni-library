@@ -7,7 +7,8 @@ import {
   pgEnum,
   timestamp,
   date,
-  numeric, // ✅ Add this import!
+  numeric,
+  boolean, // ✅ Add boolean import
 } from "drizzle-orm/pg-core";
 
 export const STATUS_ENUM = pgEnum("status", ["PENDING", "APPROVED", "REJECTED"]);
@@ -28,6 +29,16 @@ export const users = pgTable("users", {
   role: ROLE_ENUM("role").default("USER").notNull(),
   lastActivityDate: date("last_activity_date").defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  // ✅ NEW: Profile & Notification Settings
+  phone: varchar("phone", { length: 20 }),
+  bio: text("bio"),
+  emailNotifications: boolean("email_notifications").default(true).notNull(),
+  borrowConfirmationEmails: boolean("borrow_confirmation_emails").default(true).notNull(),
+  returnConfirmationEmails: boolean("return_confirmation_emails").default(true).notNull(),
+  dueReminderEmails: boolean("due_reminder_emails").default(true).notNull(),
+  promotionalEmails: boolean("promotional_emails").default(false).notNull(),
+  language: varchar("language", { length: 10 }).default("en"),
+  theme: varchar("theme", { length: 10 }).default("dark"),
 });
 
 export const books = pgTable("books", {
@@ -35,7 +46,7 @@ export const books = pgTable("books", {
   title: varchar("title", { length: 255 }).notNull(),
   author: varchar("author", { length: 255 }).notNull(),
   genre: text("genre").notNull(),
-  rating: numeric("rating").notNull(), // Now numeric is imported
+  rating: numeric("rating").notNull(),
   coverUrl: text("cover_url").notNull(),
   coverColor: varchar("cover_color", { length: 7 }).notNull(),
   description: text("description").notNull(),

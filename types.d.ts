@@ -55,3 +55,25 @@ declare module 'lucide-react' {
   export const Calendar: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   export const Star: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 }
+export interface User {
+  id: string;
+  fullName: string;
+  email: string;
+  universityId: string;
+  password: string;
+  universityCard: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  role: "USER" | "ADMIN";
+  lastActivityDate: string | null;
+  createdAt: Date | null;
+  // ✅ New fields - make them optional or with default values
+  phone: string | null;
+  bio: string | null;
+  emailNotifications: boolean;
+  borrowConfirmationEmails: boolean;
+  returnConfirmationEmails: boolean;
+  dueReminderEmails: boolean;
+  promotionalEmails: boolean;
+  language: string | null;
+  theme: string | null; // ✅ Allow null
+}

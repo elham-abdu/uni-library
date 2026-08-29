@@ -1,9 +1,10 @@
-"use server";
+﻿"use server";
 
 import { db } from "@/database/drizzle";
-import { borrowRecords, books } from "@/database/schema";
+import { borrowRecords, books, users } from "@/database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { sendReturnConfirmation } from "@/lib/email/service";
 
 interface BorrowedBook {
   id: string;
@@ -83,7 +84,6 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
   const { borrowId, userId } = params;
 
   try {
-    // Get the borrow record with book info
     const [borrowRecord] = await db
       .select()
       .from(borrowRecords)
@@ -103,7 +103,6 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
       };
     }
 
-    // Get the book to update available copies
     const [book] = await db
       .select()
       .from(books)
@@ -117,7 +116,6 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
       };
     }
 
-    // Update borrow record status
     const today = new Date().toISOString().split("T")[0];
     await db
       .update(borrowRecords)
@@ -127,7 +125,6 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
       })
       .where(eq(borrowRecords.id, borrowId));
 
-    // Increase available copies
     await db
       .update(books)
       .set({
@@ -135,7 +132,31 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
       })
       .where(eq(books.id, borrowRecord.bookId));
 
-    // Revalidate paths to update UI
+    // Send email notification after successful return
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      console.log("📧 User found for return email:", user?.email);
+      
+      if (user && user.email) {
+        console.log("📧 Attempting to send return confirmation to:", user.email);
+        const emailResult = await sendReturnConfirmation(
+          user.email,
+          user.fullName,
+          book.title
+        );
+        console.log("📧 Return confirmation email result:", emailResult);
+      } else {
+        console.log("❌ No user found or user has no email");
+      }
+    } catch (emailError) {
+      console.error("❌ Failed to send return confirmation email:", emailError);
+    }
+
     revalidatePath("/my-profile");
     revalidatePath(`/books/${borrowRecord.bookId}`);
     revalidatePath("/");
@@ -153,7 +174,6 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
   }
 };
 
-// Get borrow history (all borrows including returned)
 export const getBorrowHistory = async (userId: string) => {
   try {
     if (!userId) {

@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { db } from "@/database/drizzle";
 import { books, borrowRecords, users } from "@/database/schema";
@@ -61,7 +61,6 @@ export const getBooks = async (options: GetBooksOptions = {}) => {
       sortBy = "newest",
     } = options;
 
-    // Build conditions
     const conditions = [];
 
     if (search) {
@@ -84,7 +83,6 @@ export const getBooks = async (options: GetBooksOptions = {}) => {
 
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
-    // Get total count
     const totalResult = await db
       .select({ count: count() })
       .from(books)
@@ -92,7 +90,6 @@ export const getBooks = async (options: GetBooksOptions = {}) => {
 
     const total = totalResult[0]?.count || 0;
 
-    // Get all genres for filter (do this before the main query)
     const genresResult = await db
       .select({ genre: books.genre })
       .from(books)
@@ -100,7 +97,6 @@ export const getBooks = async (options: GetBooksOptions = {}) => {
 
     const genres = genresResult.map((g) => g.genre);
 
-    // Build and execute the main query with sorting
     let allBooks;
 
     if (sortBy === "newest") {
@@ -233,7 +229,6 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
   }
 
   try {
-    // Check current borrowed count (Max 3 books allowed)
     const [userLoans] = await db
       .select({ total: count() })
       .from(borrowRecords)
@@ -251,7 +246,6 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
       };
     }
 
-    // Fetch book copies
     const [book] = await db
       .select()
       .from(books)
@@ -266,7 +260,6 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
       return { success: false, error: "No copies available for borrowing." };
     }
 
-    // Check existing borrow
     const [existingBorrow] = await db
       .select()
       .from(borrowRecords)
@@ -307,29 +300,48 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
       })
       .where(eq(books.id, bookId));
 
-    // Send email notification after successful borrow
+    console.log("📧 ===== STARTING EMAIL SEND PROCESS =====");
+    console.log("📧 User ID:", userId);
+    console.log("📧 Book Title:", book.title);
+    console.log("📧 Due Date:", formattedDueDate);
+    
     try {
+      console.log("📧 Step 1: Looking up user in database...");
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
 
+      console.log("📧 Step 2: User lookup complete");
+      console.log("📧 User found:", !!user);
+      console.log("📧 User email:", user?.email || "No email found");
+      console.log("📧 User name:", user?.fullName || "No name found");
+      
       if (user && user.email) {
-        // Send email in the background (don't await to not block response)
-        sendBorrowConfirmation(
+        console.log("📧 Step 3: Attempting to send borrow confirmation to:", user.email);
+        const emailResult = await sendBorrowConfirmation(
           user.email,
           user.fullName,
           book.title,
           formattedDueDate
-        ).catch((error) => {
-          console.error("Failed to send borrow confirmation email:", error);
-        });
+        );
+        console.log("📧 Step 4: Borrow confirmation email result:", JSON.stringify(emailResult, null, 2));
+        
+        if (emailResult.success) {
+          console.log("✅ Borrow confirmation email sent successfully!");
+        } else {
+          console.log("❌ Borrow confirmation email failed:", emailResult.error);
+        }
+      } else {
+        console.log("❌ Step 3: No user found or user has no email");
+        console.log("📧 User object:", user);
       }
     } catch (emailError) {
-      console.error("Error sending email notification:", emailError);
-      // Don't fail the borrow if email fails
+      console.error("❌ FAILED to send borrow confirmation email:", emailError);
+      console.error("❌ Error details:", JSON.stringify(emailError, null, 2));
     }
+    console.log("📧 ===== ENDING EMAIL SEND PROCESS =====");
 
     revalidatePath(`/books/${bookId}`);
     revalidatePath("/my-profile");
