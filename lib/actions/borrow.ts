@@ -5,6 +5,7 @@ import { borrowRecords, books, users } from "@/database/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sendReturnConfirmation } from "@/lib/email/service";
+import { processNextHold } from "@/lib/actions/hold";
 
 interface BorrowedBook {
   id: string;
@@ -17,6 +18,8 @@ interface BorrowedBook {
   borrowDate: Date;
   dueDate: string;
   status: string;
+  returnDate?: string | null;
+  renewalCount?: number;
   totalCopies?: number;
   availableCopies?: number;
   description?: string;
@@ -25,6 +28,7 @@ interface BorrowedBook {
   createdAt?: Date | null;
 }
 
+// ✅ Get ALL borrows (both BORROWED and RETURNED)
 export const getBorrowedBooks = async (userId: string) => {
   try {
     if (!userId) {
@@ -39,12 +43,7 @@ export const getBorrowedBooks = async (userId: string) => {
       .select()
       .from(borrowRecords)
       .innerJoin(books, eq(borrowRecords.bookId, books.id))
-      .where(
-        and(
-          eq(borrowRecords.userId, userId),
-          eq(borrowRecords.status, "BORROWED")
-        )
-      )
+      .where(eq(borrowRecords.userId, userId))
       .orderBy(desc(borrowRecords.borrowDate));
 
     const borrowedBooks: BorrowedBook[] = records.map((record) => ({
@@ -58,6 +57,8 @@ export const getBorrowedBooks = async (userId: string) => {
       borrowDate: record.borrow_records.borrowDate,
       dueDate: record.borrow_records.dueDate,
       status: record.borrow_records.status,
+      returnDate: record.borrow_records.returnDate,
+      renewalCount: record.borrow_records.renewalCount,
       totalCopies: record.books.totalCopies,
       availableCopies: record.books.availableCopies,
       description: record.books.description,
@@ -80,6 +81,7 @@ export const getBorrowedBooks = async (userId: string) => {
   }
 };
 
+// ✅ Return a book + process next hold in queue
 export const returnBook = async (params: { borrowId: string; userId: string }) => {
   const { borrowId, userId } = params;
 
@@ -97,10 +99,7 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
       .limit(1);
 
     if (!borrowRecord) {
-      return {
-        success: false,
-        error: "Borrow record not found",
-      };
+      return { success: false, error: "Borrow record not found" };
     }
 
     const [book] = await db
@@ -110,10 +109,7 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
       .limit(1);
 
     if (!book) {
-      return {
-        success: false,
-        error: "Book not found",
-      };
+      return { success: false, error: "Book not found" };
     }
 
     const today = new Date().toISOString().split("T")[0];
@@ -132,7 +128,7 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
       })
       .where(eq(books.id, borrowRecord.bookId));
 
-    // Send email notification after successful return
+    // Send return confirmation email
     try {
       const [user] = await db
         .select()
@@ -140,21 +136,24 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
         .where(eq(users.id, userId))
         .limit(1);
 
-      console.log("📧 User found for return email:", user?.email);
-      
       if (user && user.email) {
-        console.log("📧 Attempting to send return confirmation to:", user.email);
         const emailResult = await sendReturnConfirmation(
           user.email,
           user.fullName,
           book.title
         );
         console.log("📧 Return confirmation email result:", emailResult);
-      } else {
-        console.log("❌ No user found or user has no email");
       }
     } catch (emailError) {
       console.error("❌ Failed to send return confirmation email:", emailError);
+    }
+
+    // Process next hold in queue
+    try {
+      const holdResult = await processNextHold(borrowRecord.bookId);
+      console.log("📚 Hold processing result:", holdResult);
+    } catch (holdError) {
+      console.error("❌ Failed to process next hold:", holdError);
     }
 
     revalidatePath("/my-profile");
@@ -174,6 +173,7 @@ export const returnBook = async (params: { borrowId: string; userId: string }) =
   }
 };
 
+// ✅ Get borrow history (only returned books)
 export const getBorrowHistory = async (userId: string) => {
   try {
     if (!userId) {
@@ -188,8 +188,13 @@ export const getBorrowHistory = async (userId: string) => {
       .select()
       .from(borrowRecords)
       .innerJoin(books, eq(borrowRecords.bookId, books.id))
-      .where(eq(borrowRecords.userId, userId))
-      .orderBy(desc(borrowRecords.borrowDate));
+      .where(
+        and(
+          eq(borrowRecords.userId, userId),
+          eq(borrowRecords.status, "RETURNED")
+        )
+      )
+      .orderBy(desc(borrowRecords.returnDate));
 
     const borrowHistory: BorrowedBook[] = records.map((record) => ({
       id: record.books.id,
@@ -202,6 +207,8 @@ export const getBorrowHistory = async (userId: string) => {
       borrowDate: record.borrow_records.borrowDate,
       dueDate: record.borrow_records.dueDate,
       status: record.borrow_records.status,
+      returnDate: record.borrow_records.returnDate,
+      renewalCount: record.borrow_records.renewalCount,
       totalCopies: record.books.totalCopies,
       availableCopies: record.books.availableCopies,
       description: record.books.description,

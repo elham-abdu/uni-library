@@ -2,6 +2,8 @@ import React from "react";
 import Image from "next/image";
 import BookCover from "@/components/BookCover";
 import { BorrowBook } from "@/components/BorrowBook";
+import HoldButton from "@/components/HoldButton";
+import ReadingListButton from "@/components/ReadingListButton";
 
 interface BookOverviewProps {
   id: string | number;
@@ -16,6 +18,11 @@ interface BookOverviewProps {
   coverUrl?: string;
   userId: string;
   summary?: string;
+  existingHold?: {
+    id: string;
+    queuePosition: number;
+  } | null;
+  readingListStatus?: "WANT_TO_READ" | "CURRENTLY_READING" | "FINISHED" | null;
 }
 
 const BookOverview = ({
@@ -30,6 +37,8 @@ const BookOverview = ({
   coverColor,
   coverUrl,
   userId,
+  existingHold,
+  readingListStatus,
 }: BookOverviewProps) => {
   const borrowEligibility = {
     isEligible: availableCopies > 0,
@@ -71,11 +80,29 @@ const BookOverview = ({
 
         <p className="book-description">{description}</p>
 
+        {/* Borrow Button */}
         <BorrowBook
           bookId={String(id)}
           userId={userId}
           borrowEligibility={borrowEligibility}
         />
+
+        {/* Hold Button (only shows when out of stock) */}
+        <HoldButton
+          userId={userId}
+          bookId={String(id)}
+          availableCopies={availableCopies}
+          existingHold={existingHold}
+        />
+
+        {/* ✅ Reading List Button */}
+        {userId && (
+          <ReadingListButton
+            userId={userId}
+            bookId={String(id)}
+            currentStatus={readingListStatus}
+          />
+        )}
       </div>
 
       <div className="relative flex flex-1 justify-center">

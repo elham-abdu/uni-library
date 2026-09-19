@@ -4,16 +4,11 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  User,
+  User as UserIcon,
   Bell,
-  Moon,
-  Sun,
-  Phone,
   Edit2,
   Save,
   X,
-  Check,
-  Palette,
   Languages,
 } from "lucide-react";
 
@@ -28,7 +23,6 @@ interface User {
   returnConfirmationEmails: boolean;
   dueReminderEmails: boolean;
   promotionalEmails: boolean;
-  theme: string | null;
   language: string | null;
   createdAt: Date | null;
 }
@@ -42,14 +36,12 @@ const SettingsClient = ({ user }: SettingsClientProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Profile form state
   const [profile, setProfile] = useState({
     fullName: user.fullName || "",
     phone: user.phone || "",
     bio: user.bio || "",
   });
 
-  // Notification settings state
   const [notifications, setNotifications] = useState({
     emailNotifications: user.emailNotifications ?? true,
     borrowConfirmationEmails: user.borrowConfirmationEmails ?? true,
@@ -58,9 +50,6 @@ const SettingsClient = ({ user }: SettingsClientProps) => {
     promotionalEmails: user.promotionalEmails ?? false,
   });
 
-  // Theme state - handle null
-  const [theme, setTheme] = useState(user.theme || "dark");
-  // Language state - handle null
   const [language, setLanguage] = useState(user.language || "en");
   const [isLanguageSaving, setIsLanguageSaving] = useState(false);
 
@@ -82,7 +71,7 @@ const SettingsClient = ({ user }: SettingsClientProps) => {
       } else {
         toast.error(data.error || "Failed to update profile.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong.");
     } finally {
       setIsSaving(false);
@@ -106,30 +95,10 @@ const SettingsClient = ({ user }: SettingsClientProps) => {
       } else {
         toast.error(data.error || "Failed to update settings.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong.");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleThemeUpdate = async (newTheme: "dark" | "light") => {
-    setTheme(newTheme);
-    try {
-      const response = await fetch("/api/user/theme", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: newTheme }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success(`🎨 Switched to ${newTheme} mode!`);
-        router.refresh();
-      }
-    } catch (error) {
-      toast.error("Failed to update theme.");
     }
   };
 
@@ -153,7 +122,7 @@ const SettingsClient = ({ user }: SettingsClientProps) => {
       } else {
         toast.error(data.error || "Failed to update language.");
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong.");
     } finally {
       setIsLanguageSaving(false);
@@ -181,7 +150,7 @@ const SettingsClient = ({ user }: SettingsClientProps) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/20 rounded-xl">
-              <User className="w-5 h-5 text-primary" />
+              <UserIcon className="w-5 h-5 text-primary" />
             </div>
             <h2 className="text-xl font-semibold text-white">👤 Profile Information</h2>
           </div>
@@ -409,83 +378,43 @@ const SettingsClient = ({ user }: SettingsClientProps) => {
         </div>
       </div>
 
-      {/* Theme & Language */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-dark-200 rounded-2xl p-6 border border-dark-300">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-yellow-500/20 rounded-xl">
-              <Palette className="w-5 h-5 text-yellow-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">🎨 Theme</h2>
+      {/* Language */}
+      <div className="bg-dark-200 rounded-2xl p-6 mb-6 border border-dark-300">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-green-500/20 rounded-xl">
+            <Languages className="w-5 h-5 text-green-400" />
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleThemeUpdate("dark")}
-              className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-                theme === "dark"
-                  ? "border-primary bg-primary/10"
-                  : "border-dark-400 hover:border-dark-300"
-              }`}
-            >
-              <Moon className="w-6 h-6 text-light-100 mx-auto mb-2" />
-              <p className="text-light-100 text-sm">Dark</p>
-              {theme === "dark" && (
-                <Check className="w-4 h-4 text-primary mx-auto mt-1" />
-              )}
-            </button>
-            <button
-              onClick={() => handleThemeUpdate("light")}
-              className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-                theme === "light"
-                  ? "border-primary bg-primary/10"
-                  : "border-dark-400 hover:border-dark-300"
-              }`}
-            >
-              <Sun className="w-6 h-6 text-light-100 mx-auto mb-2" />
-              <p className="text-light-100 text-sm">Light</p>
-              {theme === "light" && (
-                <Check className="w-4 h-4 text-primary mx-auto mt-1" />
-              )}
-            </button>
-          </div>
+          <h2 className="text-xl font-semibold text-white">🌍 Language</h2>
         </div>
-
-        <div className="bg-dark-200 rounded-2xl p-6 border border-dark-300">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-green-500/20 rounded-xl">
-              <Languages className="w-5 h-5 text-green-400" />
-            </div>
-            <h2 className="text-xl font-semibold text-white">🌍 Language</h2>
-          </div>
-          <select
-            value={language}
-            onChange={handleLanguageChange}
-            disabled={isLanguageSaving}
-            className="w-full px-4 py-3 bg-dark-300 border border-dark-400 rounded-xl text-white focus:outline-none focus:border-primary disabled:opacity-50"
-          >
-            <option value="en">🇬🇧 English</option>
-            <option value="es">🇪🇸 Spanish</option>
-            <option value="fr">🇫🇷 French</option>
-            <option value="de">🇩🇪 German</option>
-            <option value="ar">🇸🇦 Arabic</option>
-            <option value="am">🇪🇹 Amharic</option>
-          </select>
-          {isLanguageSaving && (
-            <p className="text-light-200 text-xs mt-2">Saving language preference...</p>
-          )}
-        </div>
+        <select
+          value={language}
+          onChange={handleLanguageChange}
+          disabled={isLanguageSaving}
+          className="w-full px-4 py-3 bg-dark-300 border border-dark-400 rounded-xl text-white focus:outline-none focus:border-primary disabled:opacity-50"
+        >
+          <option value="en">🇬🇧 English</option>
+          <option value="es">🇪🇸 Spanish</option>
+          <option value="fr">🇫🇷 French</option>
+          <option value="de">🇩🇪 German</option>
+          <option value="ar">🇸🇦 Arabic</option>
+          <option value="am">🇪🇹 Amharic</option>
+        </select>
+        {isLanguageSaving && (
+          <p className="text-light-200 text-xs mt-2">Saving language preference...</p>
+        )}
       </div>
 
       {/* Stats Card */}
       <div className="bg-gradient-to-r from-primary/20 to-purple-500/20 rounded-2xl p-6 border border-primary/20">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary/20 rounded-full">
-            <User className="w-6 h-6 text-primary" />
+            <UserIcon className="w-6 h-6 text-primary" />
           </div>
           <div>
             <p className="text-white font-semibold">Account Status</p>
             <p className="text-light-100 text-sm">
-              ✅ Active • Member since {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+              ✅ Active • Member since{" "}
+              {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
             </p>
           </div>
         </div>

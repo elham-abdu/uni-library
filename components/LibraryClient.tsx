@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import BookCard from "@/components/BookCard";
 import { Search, Filter, X } from "lucide-react";
@@ -46,15 +46,54 @@ const LibraryClient = ({
   const [sort, setSort] = useState(searchParams.sort);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const applyFilters = () => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (genre) params.set("genre", genre);
-    if (availableOnly) params.set("availableOnly", "true");
-    if (sort) params.set("sort", sort);
-    params.set("page", "1");
-    router.push(`/library?${params.toString()}`);
-  };
+  // Real-time client-side filtering
+  const filteredBooks = useMemo(() => {
+    let result = [...books];
+
+    // Search filter (case-insensitive, partial match)
+    if (search.trim()) {
+      const searchLower = search.toLowerCase().trim();
+      result = result.filter(
+        (book) =>
+          book.title.toLowerCase().includes(searchLower) ||
+          (book.author && book.author.toLowerCase().includes(searchLower)) ||
+          book.genre.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Genre filter
+    if (genre) {
+      result = result.filter((book) => book.genre === genre);
+    }
+
+    // Availability filter
+    if (availableOnly) {
+      result = result.filter((book) => (book.availableCopies ?? 0) > 0);
+    }
+
+    // Sort
+    switch (sort) {
+      case "newest":
+        break;
+      case "oldest":
+        result = [...result].reverse();
+        break;
+      case "highestRated":
+        result = [...result].sort(
+          (a, b) => parseFloat(b.rating || "0") - parseFloat(a.rating || "0")
+        );
+        break;
+      case "available":
+        result = [...result].sort(
+          (a, b) => (b.availableCopies ?? 0) - (a.availableCopies ?? 0)
+        );
+        break;
+      default:
+        break;
+    }
+
+    return result;
+  }, [books, search, genre, availableOnly, sort]);
 
   const clearFilters = () => {
     setSearch("");
@@ -87,9 +126,16 @@ const LibraryClient = ({
             placeholder="Search by title, author, or genre..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-            className="w-full pl-10 pr-4 py-2 bg-dark-200 border border-dark-300 rounded-lg text-white placeholder-light-200 focus:outline-none focus:border-primary"
+            className="w-full pl-10 pr-10 py-2 bg-dark-200 border border-dark-300 rounded-lg text-white placeholder-light-200 focus:outline-none focus:border-primary transition-colors"
           />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-light-200 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <button
           onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -97,12 +143,6 @@ const LibraryClient = ({
         >
           <Filter className="w-5 h-5" />
           Filters
-        </button>
-        <button
-          onClick={applyFilters}
-          className="px-6 py-2 bg-primary text-dark-100 font-semibold rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          Search
         </button>
       </div>
 
@@ -169,13 +209,20 @@ const LibraryClient = ({
 
       {/* Results Count */}
       <p className="text-light-100 mb-4">
-        Found {books.length} book{books.length !== 1 ? "s" : ""}
+        Found {filteredBooks.length} book{filteredBooks.length !== 1 ? "s" : ""}
+        {search && (
+          <span className="text-primary ml-2">
+            matching &quot;{search}&quot;
+          </span>
+        )}
       </p>
 
       {/* Books Grid */}
-      {books.length === 0 ? (
+      {filteredBooks.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-light-100 text-lg">No books found matching your criteria.</p>
+          <p className="text-light-100 text-lg">
+            No books found matching your criteria.
+          </p>
           <button
             onClick={clearFilters}
             className="mt-4 text-primary hover:underline"
@@ -185,7 +232,7 @@ const LibraryClient = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {books.map((book) => (
+          {filteredBooks.map((book) => (
             <BookCard key={book.id} {...book} />
           ))}
         </div>

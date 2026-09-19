@@ -52,7 +52,7 @@ const config: Config = {
           "5": "hsl(var(--chart-5))",
         },
         primary: {
-          DEFAULT: "#E7C9A5",
+          DEFAULT: "#8b5cf6",
           admin: "#25388C",
         },
         green: {

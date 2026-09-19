@@ -1,7 +1,7 @@
 ﻿"use server";
 
 import { db } from "@/database/drizzle";
-import { books, borrowRecords, users } from "@/database/schema";
+import { books, borrowRecords, users, bookHolds } from "@/database/schema";
 import { bookSchema } from "@/lib/validations";
 import { desc, eq, and, sql, ilike, count, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -81,7 +81,8 @@ export const getBooks = async (options: GetBooksOptions = {}) => {
       conditions.push(sql`${books.availableCopies} > 0`);
     }
 
-    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereCondition =
+      conditions.length > 0 ? and(...conditions) : undefined;
 
     const totalResult = await db
       .select({ count: count() })
@@ -229,6 +230,7 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
   }
 
   try {
+    // 1. Check borrow limit
     const [userLoans] = await db
       .select({ total: count() })
       .from(borrowRecords)
@@ -239,13 +241,14 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
         )
       );
 
-    if (userLoans.total >= 3) {
+    if (userLoans.total >= MAX_BORROW_LIMIT) {
       return {
         success: false,
         error: "You have reached the maximum limit of 3 borrowed books.",
       };
     }
 
+    // 2. Fetch book
     const [book] = await db
       .select()
       .from(books)
@@ -260,6 +263,7 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
       return { success: false, error: "No copies available for borrowing." };
     }
 
+    // 3. Check existing borrow
     const [existingBorrow] = await db
       .select()
       .from(borrowRecords)
@@ -279,6 +283,7 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
       };
     }
 
+    // 4. Create borrow record
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + 14);
     const formattedDueDate = dueDate.toISOString().split("T")[0];
@@ -293,6 +298,7 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
       })
       .returning();
 
+    // 5. Decrease available copies
     await db
       .update(books)
       .set({
@@ -300,49 +306,65 @@ export const borrowBook = async (params: { userId: string; bookId: string }) => 
       })
       .where(eq(books.id, bookId));
 
+    // 6. ✅ Mark any READY hold as FULFILLED
+    try {
+      await db
+        .update(bookHolds)
+        .set({
+          status: "FULFILLED",
+          fulfilledAt: new Date(),
+        })
+        .where(
+          and(
+            eq(bookHolds.userId, userId),
+            eq(bookHolds.bookId, bookId),
+            eq(bookHolds.status, "READY")
+          )
+        );
+      console.log("✅ Hold marked as FULFILLED (if existed)");
+    } catch (holdError) {
+      console.error("❌ Failed to fulfill hold:", holdError);
+      // Don't fail the borrow if hold update fails
+    }
+
+    // 7. Send borrow confirmation email
     console.log("📧 ===== STARTING EMAIL SEND PROCESS =====");
     console.log("📧 User ID:", userId);
     console.log("📧 Book Title:", book.title);
     console.log("📧 Due Date:", formattedDueDate);
-    
+
     try {
-      console.log("📧 Step 1: Looking up user in database...");
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
 
-      console.log("📧 Step 2: User lookup complete");
       console.log("📧 User found:", !!user);
       console.log("📧 User email:", user?.email || "No email found");
-      console.log("📧 User name:", user?.fullName || "No name found");
-      
+
       if (user && user.email) {
-        console.log("📧 Step 3: Attempting to send borrow confirmation to:", user.email);
         const emailResult = await sendBorrowConfirmation(
           user.email,
           user.fullName,
           book.title,
           formattedDueDate
         );
-        console.log("📧 Step 4: Borrow confirmation email result:", JSON.stringify(emailResult, null, 2));
-        
+
         if (emailResult.success) {
           console.log("✅ Borrow confirmation email sent successfully!");
         } else {
           console.log("❌ Borrow confirmation email failed:", emailResult.error);
         }
       } else {
-        console.log("❌ Step 3: No user found or user has no email");
-        console.log("📧 User object:", user);
+        console.log("❌ No user found or user has no email");
       }
     } catch (emailError) {
       console.error("❌ FAILED to send borrow confirmation email:", emailError);
-      console.error("❌ Error details:", JSON.stringify(emailError, null, 2));
     }
     console.log("📧 ===== ENDING EMAIL SEND PROCESS =====");
 
+    // 8. Revalidate paths
     revalidatePath(`/books/${bookId}`);
     revalidatePath("/my-profile");
     revalidatePath("/");
