@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # 2. Rebuild the source code
 FROM node:20-alpine AS builder
@@ -11,8 +11,17 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
 
+# Dummy build-time environment variables for Next.js static collection
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
+ENV NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/placeholder"
+ENV IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/placeholder"
+ENV NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY="placeholder_public_key"
+ENV IMAGEKIT_PUBLIC_KEY="placeholder_public_key"
+ENV IMAGEKIT_PRIVATE_KEY="placeholder_private_key"
+ENV RESEND_TOKEN="re_placeholder_123456789"
+
+RUN npm run build
 # 3. Production runner image
 FROM node:20-alpine AS runner
 WORKDIR /app
